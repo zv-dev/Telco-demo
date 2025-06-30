@@ -1,0 +1,68 @@
+version: '3.8'
+services:
+  rabbitmq:
+    image: rabbitmq:3-management
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: user
+      RABBITMQ_DEFAULT_PASS: password
+
+  postgres:
+    image: postgres:14
+    environment:
+      POSTGRES_USER: telco
+      POSTGRES_PASSWORD: telco_pass
+      POSTGRES_DB: telco_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  input-vendor1:
+    build: ./input-vendor1
+    depends_on:
+      - rabbitmq
+    environment:
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_USER: user
+      RABBITMQ_PASS: password
+
+  input-vendor2:
+    build: ./input-vendor2
+    depends_on:
+      - rabbitmq
+    environment:
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_USER: user
+      RABBITMQ_PASS: password
+
+  processor:
+    build: ./processor
+    depends_on:
+      - rabbitmq
+      - postgres
+    environment:
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_USER: user
+      RABBITMQ_PASS: password
+      POSTGRES_HOST: postgres
+      POSTGRES_DB: telco_db
+      POSTGRES_USER: telco
+      POSTGRES_PASSWORD: telco_pass
+
+  api-gateway:
+    build: ./api-gateway
+    depends_on:
+      - postgres
+    environment:
+      POSTGRES_HOST: postgres
+      POSTGRES_DB: telco_db
+      POSTGRES_USER: telco
+      POSTGRES_PASSWORD: telco_pass
+    ports:
+      - "8000:8000"
+
+volumes:
+  pgdata: 
