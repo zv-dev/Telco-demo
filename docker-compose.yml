@@ -20,24 +20,6 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
 
-  input-vendor1:
-    build: ./input-vendor1
-    depends_on:
-      - rabbitmq
-    environment:
-      RABBITMQ_HOST: rabbitmq
-      RABBITMQ_USER: user
-      RABBITMQ_PASS: password
-
-  input-vendor2:
-    build: ./input-vendor2
-    depends_on:
-      - rabbitmq
-    environment:
-      RABBITMQ_HOST: rabbitmq
-      RABBITMQ_USER: user
-      RABBITMQ_PASS: password
-
   processor:
     build: ./processor
     depends_on:
@@ -51,6 +33,26 @@ services:
       POSTGRES_DB: telco_db
       POSTGRES_USER: telco
       POSTGRES_PASSWORD: telco_pass
+
+  input-vendor1:
+    build: ./input-vendor1
+    depends_on:
+      - rabbitmq
+      - processor
+    environment:
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_USER: user
+      RABBITMQ_PASS: password
+
+  input-vendor2:
+    build: ./input-vendor2
+    depends_on:
+      - rabbitmq
+      - processor
+    environment:
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_USER: user
+      RABBITMQ_PASS: password
 
   api-gateway:
     build: ./api-gateway
