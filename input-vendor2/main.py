@@ -14,7 +14,18 @@ parameters = pika.ConnectionParameters(host=RABBITMQ_HOST, credentials=credentia
 
 print(f"input-vendor2 service started, connecting to RabbitMQ at {RABBITMQ_HOST}")
 
-connection = pika.BlockingConnection(parameters)
+max_retries = 10
+for attempt in range(max_retries):
+    try:
+        connection = pika.BlockingConnection(parameters)
+        print("Connected to RabbitMQ!")
+        break
+    except pika.exceptions.AMQPConnectionError:
+        print(f"RabbitMQ not available, retrying in 5 seconds... (attempt {attempt+1}/{max_retries})")
+        time.sleep(5)
+else:
+    raise Exception("Could not connect to RabbitMQ after several attempts")
+
 channel = connection.channel()
 channel.queue_declare(queue=QUEUE_NAME, durable=True)
 

@@ -78,19 +78,29 @@ def process_message(ch, method, properties, body):
         session.close()
 
 def main():
-    connection = pika.BlockingConnection(parameters)
-    channel = connection.channel()
-    channel.queue_declare(queue=QUEUE_NAME, durable=True)
-    channel.basic_qos(prefetch_count=1)
-    channel.basic_consume(queue=QUEUE_NAME, on_message_callback=process_message)
-    print("[x] Waiting for messages. To exit press CTRL+C")
-    try:
-        channel.start_consuming()
-    except KeyboardInterrupt:
-        print("Shutting down processor...")
-        channel.stop_consuming()
-    finally:
-        connection.close()
+    max_retries = 10
+    for attempt in range(max_retries):
+        try:
+            connection = pika.BlockingConnection(parameters)
+            print("Connected to RabbitMQ!")
+            channel = connection.channel()
+            channel.queue_declare(queue=QUEUE_NAME, durable=True)
+            channel.basic_qos(prefetch_count=1)
+            channel.basic_consume(queue=QUEUE_NAME, on_message_callback=process_message)
+            print("[x] Waiting for messages. To exit press CTRL+C")
+            try:
+                channel.start_consuming()
+            except KeyboardInterrupt:
+                print("Shutting down processor...")
+                channel.stop_consuming()
+            finally:
+                connection.close()
+            break
+        except pika.exceptions.AMQPConnectionError:
+            print(f"RabbitMQ not available, retrying in 5 seconds... (attempt {attempt+1}/{max_retries})")
+            time.sleep(5)
+    else:
+        raise Exception("Could not connect to RabbitMQ after several attempts")
 
 if __name__ == "__main__":
     main() 
